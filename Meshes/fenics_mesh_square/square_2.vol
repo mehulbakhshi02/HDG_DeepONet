@@ -1,0 +1,22 @@
+mesh3d
+dimension
+2
+geomtype
+0
+surfaceelements
+2
+2 1 0 0 3 1 2 4 
+2 1 0 0 3 3 1 4 
+points
+4
+0.0 0.0 0.0
+1.0 0.0 0.0
+0.0 1.0 0.0
+1.0 1.0 0.0
+materials
+1
+1 domain1
+face_colours
+1
+       2   0.00000000   1.00000000   0.00000000
+endmesh

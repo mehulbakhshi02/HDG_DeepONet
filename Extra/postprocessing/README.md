@@ -1,0 +1,9 @@
+# Post-processing the data files produced
+
+There are a few types of files produced when one runs the unified framework code with anisotropic adaptation. All the produced files are documented here:
+
+1. `error_data.csv`: This file contains the data about the error in solution variable if their analytical value is know. For details about the columns check the file `unifiedframework/monitors.h` and the variable `err_monitors` in the code. The columns from this file can be post-processed using the script `error_data_plot.py`
+2. `log-p-MaX-AlY-ReZ-EvrA.csv`: The log file contains some details about the problem such as coefficient of drag, lift and total time required to solve. In case of hp adaptation `p=0` is the relevant file. The columns from this file can be post-processed using the script `log_plot.py`. For details about the columns check the file `unifiedframework/monitors.h` in the code.
+3. `coefficient-ne-p-MaX-AlY-ReZ-EvrA.csv`: The file contains the details about a particular mesh. It contains data like coefficient of skin friction and pressure at various quadrature points on the boundaries. In case of hp adaptation `p=0` is the relevant file. The columns from this file can be post-processed using the script `coefficient_plot.py`. For details about the columns check the file `unifiedframework/monitors.h` in the code.
+4. `solution-ne-p-MaX-AlY-ReZ-EvrA.dat`: The file contains the contour plot of solution which can be post processed by Tecplot or Paraview. The solution is saved at many sub triangles to represent higher order solutions.
+5. `solution-ne-p-MaX-AlY-ReZ-EvrA.out`: The file contains the coefficients for the HDG solution and can be used as input when starting the simulation. The file is stored in binary format.
