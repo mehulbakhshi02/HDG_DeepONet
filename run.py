@@ -282,8 +282,8 @@ def TrainMLModel():
     
     print("Training the ML model: Initiated")
     subprocess.call('python3 training.py', shell=True)
-    subprocess.call('mv *.h5 ./ML/Multiple_Models_Weights/',shell=True)
-    subprocess.call('mv ./ML/*.save ./ML/Multiple_Models_Output_Scaler/',shell=True)
+    #subprocess.call('mv *.h5 ./ML/Multiple_Models_Weights/',shell=True)
+    #subprocess.call('mv ./ML/*.save ./ML/Multiple_Models_Output_Scaler/',shell=True)
     print("Training the ML model: Completed")    
 
     
@@ -387,10 +387,10 @@ def post_processing_clean():
 
 
 # DeleteFiles()
-GenerateMLData()
+# GenerateMLData()
 # KUNAL
 # Processing_Data()
-# TrainMLModel()
+TrainMLModel()
 #subprocess.call('python3 Deploy_File_Changes.py',shell=True)
 # DeployML()
 #post_processing()

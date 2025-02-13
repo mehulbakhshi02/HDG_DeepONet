@@ -1,176 +1,77 @@
-import numpy as np
-import tensorflow as tf
-
-np.random.seed(10)
-tf.random.set_seed(10)
-
-import fileinput
 import matplotlib.pyplot as plt
-from sklearn import preprocessing
+import tensorflow as tf
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
-import joblib
 
-# Build neural network
-from tensorflow.keras.layers import Input, Dense
-from tensorflow.keras import optimizers, models, regularizers
-from tensorflow.keras import backend as K
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
-from tensorflow.keras.models import load_model, Sequential, Model
-from tensorflow.keras.regularizers import l1
+class FNN(tf.keras.Model):
+    # Initialization
+    def __init__(self, layer, activation):
+        super(FNN, self).__init__()
+        self.layer = layer
+        # This loop creates a list of hidden layers. The loop iterates over layer (except the last element, which is the output layer)
+        num_h = len(layer)
+        self.branch_hidden = []
+        for i in range(num_h-1):
+            self.branch_hidden.append(tf.keras.layers.Dense(
+                units=layer[i], activation=activation
+            ))
+        # The last layer (layer[-1]) is the output layer. It does not use an activation function, as this is typical for regression tasks or when applying the activation function later
+        self.branch_out = tf.keras.layers.Dense(units=layer[-1])
+    
+    #Forward Passing
+    def call(self, input):
+        x = input
+        L = len(self.layer)
+        # A loop runs over all the hidden layers (L-1 times) and applies them sequentially. Each layer processes the data and passes the output to the next layer.
+        for i in range(L-1):
+            x = self.branch_hidden[i](x)
+        return self.branch_out(x) # returning model's prediction
 
-# KUNAL 
-# I am commenting this line.
-# It is creating the weight files in the wrong location
+class Deepon(tf.keras.Model):
+    def __init__(self, branch_layer, trunk_layer, activation):
+        super(Deepon, self).__init__()
+        self.branch = FNN(layer=branch_layer, activation=activation)
+        self.trunk = FNN(layer=trunk_layer, activation=activation)
 
-training = False
+    def call(self, input):
+        input_branch = input[0]
+        input_trunk = input[1]
+        output_branch = self.branch(input_branch)
+        ouput_trunk = self.trunk (input_trunk)
+        return tf.reduce_sum(tf.multiply(output_branch, ouput_trunk),-1)
+    
+def generate_data():
+    branch_input_array = np.load('ML/branch_input.npy')
+    trunk_input_array = np.load('ML/trunk_input.npy')
+    output_array = np.load('ML/output.npy')
+    
+    X_train = (branch_input_array, trunk_input_array)
+    y_train = output_array
 
-no_hidden_layers = 3
-activation_func = 'tanh'
-number_neurons = 50
-no_epochs = 300
-batch_sz = 4096
-val_split = 0.1
+    return (X_train, y_train)
 
-def parameter_search(filename):
+X_train, y_train = generate_data()
+branch_layer = [30, 40, 50, 60]
+trunk_layer  = [10, 20, 30, 60]
+activation = 'tanh'
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+num_epochs = 300
+batch_size = 10000
 
-
-    # with fileinput.FileInput(filename, inplace=True, backup='.bak') as file:
-    #     print(file)
-    #     for line in file:
-    #         print(line)
-    f = open(filename, "r")
-    for line in f:
-        line = line.strip("\n")
-        if(line[0:2]=='##'):
-            param =  line.split("= ",1)[0]
-            param = param[3:-1]
-
-            # print(param)
-            if(param=="hidden_layers"):
-                no_hidden_layers = int(line.split("= ",1)[1])
-            elif(param=="activation_func"):
-                activation_func = line.split("= ",1)[1]
-            elif(param=='number_neurons'):
-                number_neurons = int(line.split("= ",1)[1])
-            elif(param=='epochs'):
-                no_epochs = int(line.split("= ",1)[1])
-            elif(param=='batch_size'):
-                batch_sz = int(line.split("= ",1)[1])
-            elif(param=='validation_split'):
-                val_split = float(line.split("= ",1)[1])
-    return [no_hidden_layers, activation_func, number_neurons, no_epochs, batch_sz, val_split]
-
-# KUNAL
-# I am commeting the below snippet 
-
-if(training):
-    add = ''
-else:
-  add = "ML/"
-
-# KUNAL
-# To prevent the code from breaking down
-# add = ''
-
-[no_hidden_layers, activation_func, number_neurons, no_epochs, batch_sz, val_split] = parameter_search(add+"test_ml.pde")
-
-input_data = np.load(add+'All_input_data.npy')
-output_data = np.load(add+'All_output_data.npy')
-
-num_data_points = np.shape(input_data)[0]
-num_inputs = np.shape(input_data)[1]
-num_outputs = np.shape(output_data)[1]
+print(X_train[0].shape)
+print(X_train[1].shape)
+print(y_train.shape)
 
 def new_r2(y_true, y_pred):
-    SS_res = K.sum(K.square(y_true - y_pred), axis=0)
-    SS_tot = K.sum(K.square(y_true - K.mean(y_true, axis=0)), axis=0)
-    output_scores =  1 - SS_res / (SS_tot + K.epsilon())
-    r2 = K.mean(output_scores)
+    SS_res = tf.reduce_sum(tf.square(y_true - y_pred))
+    SS_tot = tf.reduce_sum(tf.square(y_true - tf.reduce_mean(y_true)))
+    output_scores =  1 - SS_res / (SS_tot + tf.keras.backend.epsilon())
+    r2 = tf.reduce_mean(output_scores)
     return r2
 
-# Define model architecture here
-def New_Model(num_inputs):
-    field_input = Input(shape=(num_inputs,),name='inputs')
-    hidden_layer_1 = Dense(num_inputs,activation='swish')(field_input)
-    hidden_layer_1 = Dense(60,activation='swish')(hidden_layer_1)
-    hidden_layer_1 = Dense(60,activation='swish')(hidden_layer_1)
-    hidden_layer_1 = Dense(70,activation='relu')(hidden_layer_1)
-    hidden_layer_1 = Dense(80,activation='relu')(hidden_layer_1)
-    hidden_layer_1 = Dense(80,activation='relu')(hidden_layer_1)
-    hidden_layer_1 = Dense(100,activation='tanh')(hidden_layer_1)
-    hidden_layer_1 = Dense(100,activation='tanh')(hidden_layer_1)
-    hidden_layer_1 = Dense(100,activation='tanh')(hidden_layer_1)
-    hidden_layer_1 = Dense(90,activation='relu')(hidden_layer_1)
-    hidden_layer_1 = Dense(80,activation='relu')(hidden_layer_1)
-    hidden_layer_1 = Dense(70,activation='relu')(hidden_layer_1)
-    hidden_layer_1 = Dense(50,activation='swish')(hidden_layer_1)
-    hidden_layer_1 = Dense(40,activation='swish')(hidden_layer_1)
-    hidden_layer_1 = Dense(20,activation='swish')(hidden_layer_1)
-    hidden_layer_1 = Dense(10,activation='swish')(hidden_layer_1)
-    outputs = Dense(num_outputs,name='outputs')(hidden_layer_1)
-    model = Model(inputs=[field_input],outputs=[outputs]) 
-    my_adam = optimizers.Adam(learning_rate=0.001)
-    model.compile(optimizer=my_adam,
-          loss={'outputs': tf.keras.losses.Huber()},
-          metrics=[new_r2])
-    return model
+model_deepon = Deepon(branch_layer=branch_layer, trunk_layer=trunk_layer, activation=activation)
+model_deepon.compile(optimizer, loss=tf.keras.losses.MeanSquaredError(), metrics=[new_r2])
+model_deepon.fit(X_train, y_train, epochs=num_epochs, batch_size=batch_size, validation_split=0.01, verbose=1)
 
-# model.summary()
-# Optimization
-weights_filepath = 'best_weights.weights.h5'
-checkpoint = ModelCheckpoint(weights_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
-earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=100, verbose=0, mode='auto', baseline=None, restore_best_weights=False)
-callbacks_list = [checkpoint,earlystopping]
-
-if __name__ == '__main__':
-
-    idx = np.arange(num_data_points)
-    np.random.shuffle(idx)
-
-    input_data = input_data[idx]
-    output_data = output_data[idx]
-    # Preprocessing
-    preproc_input = Pipeline([('stdscaler', StandardScaler()),('minmaxscaler', MinMaxScaler())])
-    input_data = preproc_input.fit_transform(input_data)
-    scaler_filename = add+f"ip_scaler.save"
-    joblib.dump(preproc_input, scaler_filename)
-
-    preproc_output = Pipeline([('stdscaler', StandardScaler()),('minmaxscaler', MinMaxScaler())])
-
-    # KUNAL
-    # removing the inf values:
-    inf_index = np.argwhere(np.isinf(output_data))
-    output_data = np.delete(output_data,inf_index,axis=0)
-    input_data = np.delete(input_data,inf_index,axis=0)
-    # ends here
-
-    output_data = preproc_output.fit_transform(output_data)
-    scaler_filename = add+f"op_scaler.save"
-    joblib.dump(preproc_output, scaler_filename)
-    
-    num_stack_model = 3
-    # prediction = 0
-    # no_epochs = 1
-    for i in range(num_stack_model):
-        if i > 0:
-            num_inputs = np.shape(output_data)[1]
-            input_data = prediction
-
-        model = New_Model(num_inputs)
-    
-        weights_filepath = f'best_weights_{i}.weights.h5'
-        checkpoint = ModelCheckpoint(weights_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
-        earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=100, verbose=0, mode='auto', baseline=None, restore_best_weights=False)
-        callbacks_list = [checkpoint,earlystopping]
-
-        model.fit(x=input_data,y=output_data,
-          epochs=no_epochs,
-          batch_size=batch_sz,validation_split=val_split,callbacks=callbacks_list)
-
-        model.load_weights(weights_filepath)
-        prediction = model.predict(input_data)
-        
-        del model
+model_deepon.branch.save_weights("branch_weights.weights.h5")
+model_deepon.trunk.save_weights("trunk_weights.weights.h5")
