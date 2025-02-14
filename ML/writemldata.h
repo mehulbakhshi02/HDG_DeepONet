@@ -105,12 +105,68 @@ void UnifyingFramework<D, COMP, Model>
 		}
 	}
 
+	int m1 = 0;
+	int m2 = 1;
+	int coordinate_size = u_coordinates.size()/ne;
+
+	// Writing coordinate transformation
+	stringstream oss(" ");
+    // oss << "solution-" << ne << "-" << p;
+	oss << "element_transformation" << ne << "-" << max_order;
+    Model::GetFilename(oss);
+  	oss << ".txt";
+	ofstream cordi_log(oss.str().c_str(), ios::app);
+	cordi_log.precision(16);
+
+	for(int i=0; i<ne; i++)
+	{
+		vector<double> x(coordinate_size/2);
+		vector<double> y(coordinate_size/2);
+
+		for(int j=0; j<coordinate_size/2; j++)
+		{
+			x[j] = u_coordinates[m1];
+			y[j] = u_coordinates[m2];
+			m1=m1+2;
+			m2=m2+2;
+		}
+
+		double x1 = x[0];
+		double y1 = y[0];
+		double x2 = x[6];
+		double y2 = y[6];
+		double x3 = x[27];
+		double y3 = y[27];
+
+		double A11 = x2 - x1, A12 = x3 - x1;
+    	double A21 = y2 - y1, A22 = y3 - y1;
+
+		double detA = A11 * A22 - A12 * A21;
+
+		double invA11 = A22 / detA, invA12 = -A12 / detA;
+    	double invA21 = -A21 / detA, invA22 = A11 / detA;
+
+		cordi_log << "element: " << i+1 << endl;
+		cordi_log << "x, y, xi, eta" << endl;
+
+		for(int j=0; j<coordinate_size/2; j++)
+		{
+			double c1 = x[j] - x1, c2 = y[j] - y1;
+
+			double xi = invA11 * c1 + invA12 * c2;
+			double eta = invA21 * c1 + invA22 * c2;
+
+			cordi_log << x[j] << "," << y[j] << "," << xi << "," << eta << endl;
+		}
+		
+	}
+
 	int u_size = u_sol.size()/ne;
 	int adj_size = adj_sol.size()/ne;
 
 	int k=0;
-	int m1=0;
-	int m2=1;
+	m1=0;
+	m2=1;
 	int n=0;
 
 	for(int i = 0; i < ne; i++)
@@ -136,7 +192,7 @@ void UnifyingFramework<D, COMP, Model>
 			nip_1 = nip_universal;
 
 			// err_log << "starting_line_2" << endl;
-			err_log << u_size << "," << adj_size << "," << adj_size << endl;
+			err_log << u_size << "," << D << "," << adj_size << endl;
 						
 			
 			// err_log << "parameters" << endl;
@@ -189,7 +245,7 @@ void UnifyingFramework<D, COMP, Model>
 			int nip_1 = ml_fd_1.nip;
 
 			// err_log << "starting_line_2" << endl;
-			err_log << u_size << "," << adj_size << "," << adj_size << endl;
+			err_log << u_size << "," << D << "," << adj_size << endl;
 			
 			// err_log << "parameters" << endl;
 			// for(int pr = 0; pr<Model::NumParam;pr++)

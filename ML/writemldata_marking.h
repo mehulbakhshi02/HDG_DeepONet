@@ -136,7 +136,7 @@ void UnifyingFramework<D, COMP, Model>
 			nip_1 = nip_universal;
 
 			err_log << "starting_line_2" << endl;
-			err_log << u_size << "," << adj_size*D << "," << adj_size << endl;
+			err_log << u_size << "," << D << "," << adj_size << endl;
 						
 			
 			// err_log << "parameters" << endl;
@@ -189,7 +189,7 @@ void UnifyingFramework<D, COMP, Model>
 			int nip_1 = ml_fd_1.nip;
 
 			err_log << "starting_line_2" << endl;
-			err_log << u_size << "," << adj_size*D << "," << adj_size << endl;
+			err_log << u_size << "," << D << "," << adj_size << endl;
 			
 			// err_log << "parameters" << endl;
 			// for(int pr = 0; pr<Model::NumParam;pr++)
