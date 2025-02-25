@@ -196,7 +196,9 @@ void UnifyingFramework<D, COMP, Model>
     double err = 0.;
     for (int ll = 0; ll < COMP; ++ll)
       for (int pp = 0; pp < ndof_w; ++pp)
+      {
         err += matW[pp+ndof_w*ll] * adj.vecW[COMP*ed.offset_w+pp+ndof_w*ll];
+      }
 
     if (Model::Diffusion || Model::Source)
       for (int ll = 0; ll < COMP; ++ll)

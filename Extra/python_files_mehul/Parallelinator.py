@@ -11,7 +11,7 @@ cwd = os.getcwd()
     
 commands = []
 
-Base = "HDG_ML_NS"
+Base = "HDG_ML_Conv"
 
 num_cores = os.cpu_count()
 

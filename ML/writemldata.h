@@ -105,18 +105,78 @@ void UnifyingFramework<D, COMP, Model>
 		}
 	}
 
+	//Solution coordinate transformation
+
 	int m1 = 0;
 	int m2 = 1;
 	int coordinate_size = u_coordinates.size()/ne;
 
-	// Writing coordinate transformation
-	stringstream oss(" ");
-    // oss << "solution-" << ne << "-" << p;
-	oss << "element_transformation" << ne << "-" << max_order;
-    Model::GetFilename(oss);
-  	oss << ".txt";
-	ofstream cordi_log(oss.str().c_str(), ios::app);
-	cordi_log.precision(16);
+	// stringstream oss(" ");
+    // // oss << "solution-" << ne << "-" << p;
+	// oss << "u_element_transformation" << ne << "-" << max_order;
+    // Model::GetFilename(oss);
+  	// oss << ".txt";
+	// ofstream cordi_log(oss.str().c_str(), ios::app);
+	// cordi_log.precision(16);
+
+	// for(int i=0; i<ne; i++)
+	// {
+	// 	vector<double> x(coordinate_size/2);
+	// 	vector<double> y(coordinate_size/2);
+
+	// 	for(int j=0; j<coordinate_size/2; j++)
+	// 	{
+	// 		x[j] = u_coordinates[m1];
+	// 		y[j] = u_coordinates[m2];
+	// 		m1=m1+2;
+	// 		m2=m2+2;
+	// 	}
+
+	// 	double x1 = x[0];
+	// 	double y1 = y[0];
+	// 	double x2 = x[6];
+	// 	double y2 = y[6];
+	// 	double x3 = x[27];
+	// 	double y3 = y[27];
+
+	// 	double A11 = x2 - x1, A12 = x3 - x1;
+    // 	double A21 = y2 - y1, A22 = y3 - y1;
+
+	// 	double detA = A11 * A22 - A12 * A21;
+
+	// 	double invA11 = A22 / detA, invA12 = -A12 / detA;
+    // 	double invA21 = -A21 / detA, invA22 = A11 / detA;
+
+	// 	cordi_log << "element: " << i+1 << endl;
+	// 	cordi_log << "x, y, xi, eta" << endl;
+
+	// 	for(int j=0; j<coordinate_size/2; j++)
+	// 	{
+	// 		double c1 = x[j] - x1, c2 = y[j] - y1;
+
+	// 		double xi = invA11 * c1 + invA12 * c2;
+	// 		double eta = invA21 * c1 + invA22 * c2;
+
+	// 		cordi_log << x[j] << "," << y[j] << "," << xi << "," << eta << endl;
+	// 	}
+		
+	// }
+
+	//Adjoint coordinate transformation
+
+	m1 = 0;
+	m2 = 1;
+	coordinate_size = adj_coordinates.size()/ne;
+
+	vector<double> trans_adj_coordinates;
+
+	// stringstream oss1(" ");
+    // // oss << "solution-" << ne << "-" << p;
+	// oss1 << "adj_element_transformation" << ne << "-" << max_order;
+    // Model::GetFilename(oss1);
+  	// oss1 << ".txt";
+	// ofstream adj_cordi_log(oss1.str().c_str(), ios::app);
+	// adj_cordi_log.precision(16);
 
 	for(int i=0; i<ne; i++)
 	{
@@ -125,18 +185,18 @@ void UnifyingFramework<D, COMP, Model>
 
 		for(int j=0; j<coordinate_size/2; j++)
 		{
-			x[j] = u_coordinates[m1];
-			y[j] = u_coordinates[m2];
+			x[j] = adj_coordinates[m1];
+			y[j] = adj_coordinates[m2];
 			m1=m1+2;
 			m2=m2+2;
 		}
 
 		double x1 = x[0];
 		double y1 = y[0];
-		double x2 = x[6];
-		double y2 = y[6];
-		double x3 = x[27];
-		double y3 = y[27];
+		double x2 = x[8];
+		double y2 = y[8];
+		double x3 = x[44];
+		double y3 = y[44];
 
 		double A11 = x2 - x1, A12 = x3 - x1;
     	double A21 = y2 - y1, A22 = y3 - y1;
@@ -146,8 +206,8 @@ void UnifyingFramework<D, COMP, Model>
 		double invA11 = A22 / detA, invA12 = -A12 / detA;
     	double invA21 = -A21 / detA, invA22 = A11 / detA;
 
-		cordi_log << "element: " << i+1 << endl;
-		cordi_log << "x, y, xi, eta" << endl;
+		// adj_cordi_log << "element: " << i+1 << endl;
+		// adj_cordi_log << "x, y, xi, eta" << endl;
 
 		for(int j=0; j<coordinate_size/2; j++)
 		{
@@ -156,7 +216,10 @@ void UnifyingFramework<D, COMP, Model>
 			double xi = invA11 * c1 + invA12 * c2;
 			double eta = invA21 * c1 + invA22 * c2;
 
-			cordi_log << x[j] << "," << y[j] << "," << xi << "," << eta << endl;
+			//adj_cordi_log << x[j] << "," << y[j] << "," << xi << "," << eta << endl;
+
+			trans_adj_coordinates.push_back(xi);
+			trans_adj_coordinates.push_back(eta);
 		}
 		
 	}
@@ -205,7 +268,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for (int pp = 0; pp < u_size; ++pp)
 			{
-				err_log << u_sol[k] << endl;
+				err_log << log(abs(u_sol[k])) << endl;
 				k = k+1;
 			}
 
@@ -214,7 +277,7 @@ void UnifyingFramework<D, COMP, Model>
 			for (int l = 0; l < adj_size; ++l)
 			{
 
-				err_log << adj_coordinates[m1] << "," << adj_coordinates[m2] << endl;
+				err_log << trans_adj_coordinates[m1] << "," << trans_adj_coordinates[m2] << endl;
 				m1=m1+2;
 				m2=m2+2;
 				
@@ -224,7 +287,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for(int l=0; l<adj_size; l++)
 			{
-				err_log << adj_sol[n] << endl;
+				err_log << log(abs(adj_sol[n])) << endl;
 				n=n+1;
 			}
 
@@ -258,7 +321,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for (int pp = 0; pp < u_size; ++pp)
 			{
-				err_log << u_sol[k] << endl;
+				err_log << log(abs(u_sol[k])) << endl;
 				k = k+1;
 			}
 
@@ -267,7 +330,7 @@ void UnifyingFramework<D, COMP, Model>
 			for (int l = 0; l < adj_size; ++l)
 			{
 
-				err_log << adj_coordinates[m1] << "," << adj_coordinates[m2] << endl;
+				err_log << trans_adj_coordinates[m1] << "," << trans_adj_coordinates[m2] << endl;
 				m1=m1+2;
 				m2=m2+2;
 				
@@ -277,7 +340,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for(int l=0; l<adj_size; l++)
 			{
-				err_log << adj_sol[n] << endl;
+				err_log << log(abs(adj_sol[n])) << endl;
 				n=n+1;
 			}
 		}

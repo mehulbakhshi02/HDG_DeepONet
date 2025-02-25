@@ -28,16 +28,16 @@ def DeleteFiles():
     # delete mmg files
     subprocess.call('rm *.sol adapted.mesh adapted.o.mesh output.msh output.mesh adj_hess_metric.mtr adj_metric.solb bamg.o.mesh', shell=True)
     # delete netgen files
-    # subprocess.call('rm netgen_prev.vol ng.ini ng.prof ngmesh.ini netgen.vol netgen.in2d netgen.geo', shell=True)  
+    subprocess.call('rm netgen_prev.vol ng.ini ng.prof ngmesh.ini netgen.vol netgen.in2d netgen.geo', shell=True)  
     # delete metric related files
     subprocess.call('rm adj_metric.mtr implied_metric.mtr', shell=True)
     # delete solution and log files
     subprocess.call('rm error-*', shell=True)
-    # subprocess.call('rm log-*.txt', shell=True)
+    subprocess.call('rm log-*.txt', shell=True)
     # delete data dumps
     subprocess.call('rm error_data.csv int_err.csv cell_wise_error_*.csv max_ratios.csv solution_trial.txt mesh_data.csv error_data_solver.csv coefficients-*.txt', shell=True)
     # delete compilation files
-    # subprocess.call('rm main.o main.so main.so.dSYM libpetsc_wrapper.a main.dylib ngs.prof.0', shell=True)
+    subprocess.call('rm main.o main.so main.so.dSYM libpetsc_wrapper.a main.dylib ngs.prof.0', shell=True)
     # delete script files
     subprocess.call('cd Scripts; rm netgen2bamg netgen2angener netgen2mmg', shell=True)
     # delete some files from the cluster dump
@@ -48,6 +48,9 @@ def DeleteFiles():
     subprocess.call('rm nodeorder*.bb nodeorder*.sol nodeorder*.solb', shell=True)
     # delete existing solution files (if any)
     subprocess.call('rm solution-*', shell=True)
+    
+    subprocess.call('rm mesh-*', shell=True)
+    subprocess.call('rm ML-solution-adjoint-*', shell=True)
 
 def replace(filename, string_to_search, replacement_string):
     with fileinput.FileInput(filename, inplace=True, backup='.bak') as file:
@@ -387,11 +390,11 @@ def post_processing_clean():
 
 
 # DeleteFiles()
-# GenerateMLData()
+GenerateMLData()
 # KUNAL
 # Processing_Data()
-TrainMLModel()
-#subprocess.call('python3 Deploy_File_Changes.py',shell=True)
+# TrainMLModel()
+# subprocess.call('python3 Deploy_File_Changes.py',shell=True)
 # DeployML()
 #post_processing()
 # post_processing_clean()

@@ -25,7 +25,7 @@ subprocess.run(f"mkdir {Destination}", shell=True)
 num_cores = os.cpu_count()
 
 # Just leaving 2 cores idle for other jobs
-num_process = 10
+num_process = 6
 
 command = f"cd {Destination}; mkdir TrainingDataFiles"
 subprocess.run(command, shell=True)

@@ -43,7 +43,7 @@ Req_dir = []
 Files = []
 Strings = []
 Values = []
-mach_per_core = 1
+epsilon_per_core = 1
 
 for directory in directories:
     if directory.find("Dataset_") != -1:
@@ -54,8 +54,8 @@ Req_dir = sorted(Req_dir)
 
 for i in range(len(Req_dir)):
     Files.append(f"./{Req_dir[i]}/run.py")
-    Strings.append("mach_range = np.linspace(0.35, 0.7, N)")
-    Values.append(f"[{mach_per_core *i}:{mach_per_core *(i+1)}]")
+    Strings.append("eps_range = np.linspace(0.1, 1, N)")
+    Values.append(f"[{epsilon_per_core *i}:{epsilon_per_core *(i+1)}]")
     # print(f"[{1*i}:{1*(i+1)}]")
 print(f"Directories: \n{Req_dir}")
 print("Change the last one manually\n")

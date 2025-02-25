@@ -236,7 +236,7 @@ class UnifyingFramework : public NumProc {
 
   void GenerateMLData(const Solution & sol, LocalHeap & lh, const Solution & new_sol, vector<double> & u_coordinates, vector<double> & u_sol);
   void WriteMLData(const Solution & new_sol, LocalHeap & lh, vector<double> & u_coordinates, vector<double> & u_sol);
-  void DeployML();
+  void DeployML(vector<double> & u_coordinates, vector<double> & u_sol);
   void MLUnitTest();
 
   void Test(Solution & sol);

@@ -445,7 +445,7 @@ cout << "deploy " << MLParameters::deploy << endl;
   if(MLParameters::train){
     WriteMLData(new_sol, lh, u_coordinates, u_sol);}
   if(MLParameters::deploy){
-    DeployML();}
+    DeployML(u_coordinates, u_sol);}
   // KUNAL
   // Data file for ML is written before this
   

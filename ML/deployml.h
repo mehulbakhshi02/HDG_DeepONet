@@ -1,282 +1,245 @@
-template<int D, int COMP, class Model>
-void UnifyingFramework<D, COMP, Model>
-::DeployML() {
-
-// KUNAL: I need the nip to know how many values are missing
-// To store the nip values at the faces
-int nip_universal;
-// A marker to check that the value is acquired
-int nip_acquired = 0; 
-
-for (int i = 0; i<nf && nip_acquired == 0; i++)
-{
-	FacetData<D, COMP> & fd = *fadata[i];
-	if (fd.ndof_l != 0)
-	{
-		nip_universal = fd.nip;
-		nip_acquired = 1;
-	}
+extern"C" {
+    void table_delaunay_wrapper_(int*, double*, int*, int*);
+    void table_tet_wrapper_(int*, double*, int*, int*);
 }
 
-cout<<"nip_universal: "<<nip_universal<<endl;
+template<int D, int COMP, class Model>
+void UnifyingFramework<D, COMP, Model>::DeployML(std::vector<double> & u_coordinates, std::vector<double> & u_sol) {
 
-  int ne_int = 0;
-  for(int i=0;i<ne;i++)
-  {
-    ML_ElementData<D, COMP> & ml_elidata = *ml_eldata[i];
-    if(ml_elidata.nf==ml_elidata.nf_bc)
-        ne_int++;
-  }
+  // Transformed adjoint coordinates picked up from trans_adj_coordinates.txt file
   
-  Vec<Model::NumParam> param;
-  Model::GetParameters(param);
-  
+  std::ifstream file("ML/trans_adj_coordinates.txt");
 
-  double q_norm = AnisotropyData::norm;
+    std::vector<double> trans_adj_coordinates;  // Vector to store separated double values
+    std::string line;
 
- // Some python initialization
-    Py_Initialize();
-    
-    int PyCheckFlag = 0;
-    PyCheckFlag = Py_IsInitialized();
-    printf("PyCheckFlag: %d\n",PyCheckFlag);
-    
-    PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append(\"./ML/\")");
-   //  // initialize numpy array library
-    _import_array();
-    std::cout << "Initializing numpy library" << std::endl;
-    // initialize numpy array library
-   //  // import_array1(-1);
-    
-    std::cout << "Loading python module" << std::endl;
-    PyObject* pName = PyUnicode_DecodeFSDefault("python_module"); // Python filename
-    
-    // KUNAL
-    if (pName == NULL)
-    {
-    	printf("NULL RETURNED: pName\n");
-    	PyErr_Print();
-    }
-    PyObject* pModule = PyImport_Import(pName);
-    
-    // KUNAL
-    if (pModule == NULL)
-    {
-    	printf("NULL RETURNED: pModule \n");
-    	PyErr_Print();
-    }
-    Py_DECREF(pName); // finished with this string so release reference
-    std::cout << "Loaded python module" << std::endl; 
-
-    std::cout << "Loading functions from module" << std::endl;
-    // PyObject* pcollection_func = PyObject_GetAttrString(pModule, "collection_func");
-    PyObject* pml_predict = PyObject_GetAttrString(pModule, "output_ml_error_prediction");
-
-
-      // stringstream ml_pred(" ");
-      // ml_pred<< "ml_predict.dat";
-      
-      // ofstream ml_pred_log(ml_pred.str().c_str(), ios::app);
-      // ml_pred_log.precision(16);
-      // ml_pred_log.setf(ios::scientific, ios::floatfield);
-
-
-
-
-
-
-    Py_DECREF(pModule); // finished with this module so release reference
-    std::cout << "Loaded functions" << std::endl;
- 
-    // std::cout << "Called python data collection function successfully"<<std::endl;
-    // Py_Finalize();
-   //  int NX = 50;
-   // double u[NX+2];
-   //  double x;
-
-   //    for (int i = 1; i < NX+1; i++)
-   //    {
-   //        x = (double) (i-1)/(NX) * 2.0 * M_PI;
-   //        u[i] = sin(x);
-   //    }
-
-   //    // Handle the ghost points: periodic boundary conditions
-   //    u[0] = u[NX];
-   //    u[NX+1] = u[1];
-
-   //  collect_data(pml_predict,u, NX);
-   
-   
-  // KUNAL
-  // Batch-predictor 
-  // vector<vector<double>> Double2DVector(rows,vector<double>(cols, 0.0));
-  vector<vector<double>> Double2DVector;
-  /*for(int i = 0;i < ne;i++)
-  {
-    Double2DVector.push_back(input_data);
-  }
-  */
-  
-
-  for(int i = 0; i < ne; i++)
-  {
-  // int bc_marker = 0;
-    ML_ElementData<D, COMP> & ml_elidata = *ml_eldata[i];
-    // KUNAL
-    // if(ml_elidata.nf!=ml_elidata.nf_bc) continue;
-    int ndof_w = ml_elidata.ndof_w;
-    // Taking the quadrature nodes from the first face
-    int fcnr = ml_elidata.faces[0];
-    ML_FacetData<D, COMP> & ml_fd_1 = *ml_fadata[fcnr];
-    int nip_1 = ml_fd_1.nip;
-
-    int input_size =  (ml_elidata.ndof_w*(D+1) + nip_1*(D+1)*ml_elidata.nf)*COMP + (D*(D+1))/2 + Model::NumParam;
-    vector<double> input_data(input_size);
-    // setting the element parameters // Hard coded for 2D
-    input_data[0] = ml_elidata.vol;
-    input_data[1] = ml_elidata.beta;
-    input_data[2] = ml_elidata.theta;
-    
-    int offset = 3;
-    
-    for(int pr = 0; pr<Model::NumParam;pr++)
-    {
-      input_data[offset+pr] = param(pr);
-    }
-    
-    offset = offset+Model::NumParam;
-    // Generating the input data for solution and gradient
-    for (int ll = 0; ll < COMP; ++ll)
-    {
-      for (int pp = 0; pp < ndof_w; ++pp)
-      {
-        input_data[offset+pp+ll*ndof_w] = ml_elidata.vecW[pp+ll*ndof_w];
-      }
-    }
-
-    offset = offset + ndof_w*(COMP);
-      // Generating the input data for solution and gradient
-    for (int ll = 0; ll < COMP; ++ll)
-    {
-      for (int pp = 0; pp < ndof_w; ++pp)
-      {
-        for(int dd = 0; dd < D; ++dd)
-        {
-          input_data[offset+pp+ndof_w*(dd+D*ll)] = ml_elidata.vecQ[pp+ndof_w*(dd+D*ll)];
-        }
-      }
-    }
-
-    offset = offset + ndof_w*D*COMP;
-    for(int j = 0 ; j < ml_elidata.nf ; j ++)
-    {
-
-      int fcnr = ml_elidata.faces[j];
-      ML_FacetData<D, COMP> & ml_fd = *ml_fadata[fcnr];
-      int nip = ml_fd.nip;
+    while (std::getline(file, line)) {  // Read each line
+        std::stringstream ss(line);  // Convert line to stringstream
+        std::string value;
         
-        if (!fadata[fcnr]) continue;
-        FacetData<D, COMP> & fd = *fadata[fcnr];
-        if (fd.ndof_l == 0) continue; // skip boundary faces
-        if (fd.bcnr == -2) continue; // zero-measure face
-
-      // err_log << ml_fd.nip << endl;
-      for (int qp = 0; qp < nip; ++qp) 
-      {
-        // Jump in w on quarature points
-        double *jump_w = &ml_fd.w_jump[qp*COMP];
-        for(int ll=0;ll<COMP;ll++)
-        {
-          input_data[offset+qp*COMP+ll] = jump_w[ll];
-        }
-      }
-
-      offset = offset + nip*COMP;
-
-      for (int qp = 0; qp < nip; ++qp) 
-      {
-            // Jump in q on quadrature points
-            double *jump_q = &ml_fd.q_jump[qp * COMP * D];
-
-            for(int ll=0;ll<COMP;ll++)
-            {
-              for(int dd=0;dd<D;dd++)
-              {
-                input_data[offset + qp * COMP * D + dd+D*ll] = jump_q[dd+D*ll];
-              }
+        while (std::getline(ss, value, ',')) {  // Split by comma
+            try {
+                trans_adj_coordinates.push_back(std::stod(value));  // Convert to double and store
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid number found: " << value << std::endl;
+            } catch (const std::out_of_range& e) {
+                std::cerr << "Number out of range: " << value << std::endl;
             }
-      }
-      offset = offset + nip*D*COMP;
+        }
     }
 
-    // Call python here
-    vector<double> vec = input_data;
-    /*for (int m = 0; m < 60;m++)
-    {
-      cout << "vec["<<m<<"]: "<<vec[m]<< endl;
-    }*/
-    Double2DVector.push_back(vec);
-  }
-  
-  vector<double> flattenedData;
-  // This is a range-based for loop.
-  for (const auto& row : Double2DVector) 
-  {
-    flattenedData.insert(flattenedData.end(), row.begin(), row.end());
-  }
-  
-  npy_intp dims[2] = {static_cast<npy_intp>(Double2DVector.size()), static_cast<npy_intp>(Double2DVector[0].size())};
-  
-      // Get the dimensions of the 2D vector
-    // int nRows = Double2DVector.size();
-    // int nCols = (nRows > 0) ? Double2DVector[0].size() : 0;
-    // Create a NumPy array with the same dimensions
-    // npy_intp dims[2] = {nRows, nCols};
-    
-    PyObject* array_2d = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT64, flattenedData.data());
+    cout << "trans_adj_coordinates_size: " << trans_adj_coordinates.size() << endl;
 
-    // PyObject* array_2d = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT64, (double*)Double2DVector.data());
-    // Construct the argument tuple
-    PyObject* pArgs = PyTuple_New(1);
-    // placing array_2d in first position of the tuple
-    PyTuple_SetItem(pArgs, 0, array_2d);
-    // pml_predict (a pointer) values with pArgs argument is being casted to pValue 
-    PyArrayObject* pValue = (PyArrayObject*)PyObject_CallObject(pml_predict, pArgs);
+    file.close();
 
-    PyErr_Print();
-    int len{PyArray_SHAPE(pValue)[0]};
-    int len2{PyArray_SHAPE(pValue)[1]};
-    
-    cout<<"len: " <<len <<endl;
-    cout<<"len2: " <<len2 <<endl;
-  
-  cout << "Double2DVector: Filled" << endl;
+  // u solution normalization
 
-  vector<double> testing(ne, 0.0);
+  vector<double> norm_u_sol;
+  int u_sol_size = u_sol.size()/ne;
+  int k = 0;
 
-  for(int i = 0; i < ne; i++)
-  {
-    // cout<<"Element Number: " <<i <<endl;
-    
-    ML_DeployData<D, COMP> & ml_depldata = *ml_deploydata[i];
-
-    // Mehul
-    // int nip = ml_depldata.nip;
-    int nip = 1; // there is no nip for adjoint based error
-
-      // double scal = pow(ml_elidata.h, q_norm*(max_order+1)); //h^r*(p+1)
-      
-      for(int qq=0;qq<nip;qq++)
-      {
-        // double* current = (double*) PyArray_GETPTR2(pValue, i, qq);
-        double* current = (double*) PyArray_GETPTR2(pValue, i, qq);
-        double tempcurrent = *current;
-        double err_exp_loc = exp(tempcurrent) ;//* scal;
-        ml_depldata.w[qq] = err_exp_loc;
-        // ml_depldata.w[qq] = pow(err_exp_loc, 1.0/q_norm);
+  for (int pp = 0; pp < ne; ++pp){
+      for (int ll=0; ll < u_sol_size; ++ll){
+        norm_u_sol.push_back(log(abs(u_sol[k])));
+        k = k+1;
       }
-  }//end of loop over elements
+    }
 
+  // Initialize Python
+  Py_Initialize();
+
+  int PyCheckFlag = 0;
+  PyCheckFlag = Py_IsInitialized();
+  printf("PyCheckFlag: %d\n",PyCheckFlag);
+  
+  PyRun_SimpleString("import sys");
+  PyRun_SimpleString("sys.path.append(\"./ML/\")");
+  _import_array();
+  std::cout << "Initializing numpy library" << std::endl;
+
+  // Import the Python script (without .py extension)
+  PyObject* pName = PyUnicode_DecodeFSDefault("deployment");
+  PyObject* pModule = PyImport_Import(pName);
+  Py_XDECREF(pName); // Clean up
+
+  vector<vector<double>> ml_adjoint;  // 2D C++ vector to store Python list
+
+  if (pModule != nullptr) {
+      // Get the function from the module
+      PyObject* pFunc = PyObject_GetAttrString(pModule, "process_data");
+
+      if (PyCallable_Check(pFunc)) {
+          // Convert C++ vectors to Python lists
+          PyObject* pyList_trans_adj_coordinates = PyList_New(trans_adj_coordinates.size());
+          PyObject* pyList_norm_u_sol = PyList_New(norm_u_sol.size());
+
+          for (size_t i = 0; i < trans_adj_coordinates.size(); ++i) {
+              PyList_SetItem(pyList_trans_adj_coordinates, i, PyFloat_FromDouble(trans_adj_coordinates[i]));
+          }
+
+          for (size_t i = 0; i < norm_u_sol.size(); ++i) {
+              PyList_SetItem(pyList_norm_u_sol, i, PyFloat_FromDouble(norm_u_sol[i]));
+          }
+
+          // Create tuple of arguments
+          PyObject* pArgs = PyTuple_Pack(2, pyList_trans_adj_coordinates, pyList_norm_u_sol);
+
+          // Call the Python function
+          PyObject* pValue = PyObject_CallObject(pFunc, pArgs);
+
+          // Clean up
+          Py_XDECREF(pArgs);
+          Py_XDECREF(pyList_trans_adj_coordinates);
+          Py_XDECREF(pyList_norm_u_sol);
+
+            if (pValue != nullptr) {
+                if (PyList_Check(pValue)) {
+                    Py_ssize_t dim1_size = PyList_Size(pValue);
+                    ml_adjoint.resize(dim1_size);
+
+                    for (Py_ssize_t i = 0; i < dim1_size; ++i) {
+                        PyObject* pySubList1 = PyList_GetItem(pValue, i);
+                        if (!PyList_Check(pySubList1)) continue;
+
+                        Py_ssize_t dim2_size = PyList_Size(pySubList1);
+                        ml_adjoint[i].resize(dim2_size);
+
+                        for (Py_ssize_t j = 0; j < dim2_size; ++j) {
+                            PyObject* item = PyList_GetItem(pySubList1, j);
+                                if (PyFloat_Check(item)) {
+                                    ml_adjoint[i][j] = PyFloat_AsDouble(item);
+                                }
+                        }
+                    }
+                }
+
+                Py_XDECREF(pValue); // Clean up return value
+            } else {
+                PyErr_Print();
+            }
+        } else {
+            std::cerr << "Function not found or not callable!" << std::endl;
+            PyErr_Print();
+        }
+
+        Py_XDECREF(pFunc);
+        Py_XDECREF(pModule);
+    } else {
+        std::cerr << "Failed to load module!" << std::endl;
+        PyErr_Print();
+    }
+
+  // Finalize Python
   Py_Finalize();
+
+    // Write the adjoint solution to a file (Hard-coded)
+    //cout << "ml_adjoint dimensions: " << ml_adjoint.size() << " x " << (ml_adjoint.empty() ? 0 : ml_adjoint[0].size()) << endl;
+
+    stringstream oss(" ");
+    oss << "ML-solution-adjoint-" << ne << "-" << max_order;
+    Model::GetFilename(oss);
+    string filename(oss.str());
+
+    string fname_dat(filename);
+    fname_dat.append(".dat");
+
+    fstream output;
+    output.open(fname_dat.c_str(),ios::out);
+
+    output << "TITLE = DGD" << endl;
+    output << "VARIABLES = \"X\" \"Y\" ";
+    if (D == 3)
+        output << "\"Z\" ";
+    output << "\"W1\"";
+    output << endl;
+
+    // Calculate a triangulation of the unit triangle
+
+    int nlt = 2 * (order+2); // adjusted for adjoint
+    int npt = 0.5 * (nlt + 2) * (nlt + 1);
+
+    vector<double> xllt(2*npt);
+
+    int ll = 0;
+    for (int j = 0; j <= nlt; j++) {
+        double rl1 = 1.*j / (1. * nlt);
+        for (int k = 0; k <= nlt; k++) {
+        double rl2 = 1. * k / (1. * nlt);
+        if ( (rl2 + rl1) < 1. + 1e-9) {	
+            double rl3 = 1. - rl2 - rl1;      
+            xllt[2*ll] = rl2;
+            xllt[2*ll+1] = rl3;  
+            ll++;
+        }
+        }
+    }
+
+    vector<int> nlct(9*npt);
+    int ntr = 0;
+
+    table_delaunay_wrapper_(&npt, &xllt[0], &ntr, &nlct[0]);
+
+    int m1 = 0;
+	int m2 = 1;
+	int u_coordinate_size = u_coordinates.size()/ne;
+    int adj_coordinate_size = trans_adj_coordinates.size();
+
+
+    for(int i=0; i<ne; i++){
+        char res_out[160];
+        sprintf(res_out, "Zone T=\"INTERIOR\" N=%i, E=%i, F=FEPOINT, ET=TRIANGLE", npt, ntr);
+        output << res_out << endl;
+
+		vector<double> x(u_coordinate_size/2);
+		vector<double> y(u_coordinate_size/2);
+
+		for(int j=0; j<u_coordinate_size/2; j++)
+		{
+			x[j] = u_coordinates[m1];
+			y[j] = u_coordinates[m2];
+			m1=m1+2;
+			m2=m2+2;
+		}
+        
+        double x1 = x[0];
+		double y1 = y[0];
+		double x2 = x[6];
+		double y2 = y[6];
+		double x3 = x[27];
+		double y3 = y[27];
+
+        double x21 = x2 - x1, x31 = x3 - x1;
+        double y21 = y2 - y1, y31 = y3 - y1;
+
+        int n1 = 0;
+        int n2 = 1;
+
+        // Writing .dat file
+
+        for (int j=0; j<adj_coordinate_size/2; j++)
+        {
+            double xi = trans_adj_coordinates[n1];
+            double eta = trans_adj_coordinates[n2];
+            n1 = n1+2;
+            n2 = n2+2;
+
+            double adjx = x1 + x21 * xi + x31 * eta;
+            double adjy = y1 + y21 * xi + y31 * eta;
+
+            sprintf(res_out, "%10.10f %10.10f %10.10f", adjx, adjy, exp(ml_adjoint[i][j]));
+            output << res_out << endl;
+        }
+
+        // Writing the triangulation
+
+        for (int j = 0; j < ntr; j++) 
+        {
+            sprintf(res_out, "%i %i %i", nlct[3*j], nlct[3*j+1], nlct[3*j+2]);
+            output << res_out << endl;
+        }
+        
+    }
+
+    output.close();
+    
 }

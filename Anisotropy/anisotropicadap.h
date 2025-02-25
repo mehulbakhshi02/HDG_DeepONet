@@ -9,107 +9,6 @@
  * @param[in] - lh - Local heap that is used to generate the finite element space for patchwise
  * reconstruction
 */
-
-
-// KUNAL
-#include<algorithm>
-#include<iostream>
-#include<vector>
-#include<fstream>
-#include<cmath>
-#include<string>
-#include<unistd.h>
-#include<functional>
-#include<cassert>
-
-vector<double> readCsvColumn(const string& filename, int column, int ne) 
-{
-    ifstream file(filename);
-    vector<double> data;
-    string line, cell;
-
-    if (!file.is_open()) 
-    {
-        cerr << "Error opening file: " << filename << endl;
-        cerr << "Current working directory: " << filesystem::current_path() << endl; // Debugging: print current working directory
-        return data;
-    }
-    while (getline(file, line)) 
-    {
-        istringstream lineStream(line);
-        int currentColumn = 0;
-
-        while (getline(lineStream, cell, ',')) 
-        {
-            if (currentColumn == column) 
-            {
-                // cout<<"currentColumn: "<< currentColumn <<endl;
-                // cout<<"column: "<< column <<endl;
-                data.push_back(stod(cell));
-                // break;
-            }
-            ++currentColumn;
-        }
-    }
-
-    file.close();
-    /*
-    for (int i = 0; i < ne; ++i) 
-    {
-	cout << "data: "<< data[i] << std::endl;
-    }
-    */
-    
-    return data;
-}
-
-
-// To read ML input deploy option
-vector<double> input_parameters(string file_name)
-{
-    // Vector to read the input parameters from a input file
-    vector<double> input;
-    string item_name;
-    int i = 0;
-
-    // Open the file
-    ifstream file;
-    file.open(file_name);
-
-    // If the file is NOT opened
-    if( !file )
-    {
-        // Error Message if the file couldn't be opened
-        cerr << "Error: Input file could not be opened" << endl;
-        exit(1);
-    }
-
-    cout<<"Input file "<<file_name<<" is opened."<<endl;
-
-    string line;
-    while (getline(file, line))
-    {
-        // Classifying a string as double if the first character is a numeric
-        if(line[0]!= '/')
-        {
-            // To ensure that we are not reading white space characters
-            if(isdigit(line[0]))
-            {
-                input.push_back(stod(line));
-            }
-        }
-    }
-
-    // Closing the input file
-    file.close();
-
-    cout<<"Input file "<<file_name<<" is closed."<<endl;
-    cout<<endl;
-
-    return input;
-}
-
-
 template <int D, int COMP, class Model>
 void UnifyingFramework<D, COMP, Model>
 ::AnisotropicAdaptation(const Solution & sol, LocalHeap & lh) {
@@ -117,48 +16,14 @@ void UnifyingFramework<D, COMP, Model>
   double ts_adj = get_time();
   Solution adj;
   vector<double> error(ne);
-  
   int its;
 // AnisotropyData::adjoint_based
-
   vector<double> adj_coordinates;
   vector<double> adj_sol;
   if(AnisotropyData::adjoint_based)
   {
     SolveAdjointSystem(sol, adj, error, its, adj_coordinates, adj_sol, lh);
   }
-  
-  
-  
-        // KUNAL  
-	vector<double> ml_err(ne);
-	ml_err = readCsvColumn("cell_wise_ml_err.csv", 2, ne);
-	/*
-	for (int i = 0; i < ne; ++i) 
-	{
-		cout << "anisotropicadap.h: ml_err"<< ml_err[i] << std::endl;
-	}
-	for (int i = 0; i < ne; ++i) 
-	{
-		cout << "anisotropicadap.h: "<< error[i] << std::endl;
-	}
-	*/
-	// Filling in ML error:
-	
-	vector<double> ML_based_adaptation = input_parameters("ML_Option.txt");
-
-
-	// KUNAL
-	// Feeding in ML errors
-        cout << ML_based_adaptation[0] <<endl;
-	if (ML_based_adaptation[0] == 1.0)
-	{	
-		for (int i = 0; i < ne; ++i) 
-		{
-			error[i] = ml_err[i];
-		}
-	}
-	
   double te_adj = get_time();
   // Timing
   AnisotropyData::adjoint_time = te_adj-ts_adj;
