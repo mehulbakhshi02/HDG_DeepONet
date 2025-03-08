@@ -34,6 +34,7 @@ def DeleteFiles():
     # delete solution and log files
     subprocess.call('rm error-*', shell=True)
     subprocess.call('rm log-*.txt', shell=True)
+    subprocess.call('rm log-*.csv', shell=True)
     # delete data dumps
     subprocess.call('rm error_data.csv int_err.csv cell_wise_error_*.csv max_ratios.csv solution_trial.txt mesh_data.csv error_data_solver.csv coefficients-*.txt', shell=True)
     # delete compilation files
@@ -207,13 +208,14 @@ def GenerateMLData():
 
     subprocess.call('cp Meshes/netgen/square.in2d netgen.in2d', shell=True)
 
-    mesh_sizes = ["128"]
+    mesh_sizes = ["512"]
     
-    N = 10
+    N1 = 5
+    N2 = 10
     
-    beta1_range = np.linspace(1, 5, N)
-    beta2_range = np.linspace(1, 5, N)
-    eps_range = np.linspace(0.1, 1, N)
+    beta1_range = np.linspace(1, 1.5, N1)
+    beta2_range = np.linspace(1, 1.5, N1)
+    eps_range = np.linspace(0.1, 0.2, N2)
 
     for q in range(0, len(mesh_sizes)):
         # Write the loops over parameters
@@ -243,7 +245,7 @@ def GenerateMLData():
                     y="define constant beta = {0}" .format(beta2_new)
                     replace("test.pde", x, y)
 
-                    Calculate(10)
+                    Calculate(1)
                     subprocess.call('rm mesh*', shell=True)
                 # subprocess.call('rm log*', shell=True)
                 # KUNAL
@@ -315,7 +317,7 @@ def DeployML():
         subprocess.call('cd Scripts; g++ netgen2bamg_ho.cpp -o netgen2bamg_ho', shell=True)
         
         # Write the loops over parameters
-        Calculate(10)
+        Calculate(1)
         subprocess.call("cp cell_wise_ml_err.csv cell_wise_ml_err_"+str(ne)+".csv", shell=True)
         subprocess.call("rm cell_wise_ml_err.csv", shell=True)
         

@@ -40,7 +40,7 @@ void UnifyingFramework<D, COMP, Model>::DeployML(std::vector<double> & u_coordin
 
   for (int pp = 0; pp < ne; ++pp){
       for (int ll=0; ll < u_sol_size; ++ll){
-        norm_u_sol.push_back(log(abs(u_sol[k])));
+        norm_u_sol.push_back(u_sol[k]);
         k = k+1;
       }
     }
@@ -226,7 +226,7 @@ void UnifyingFramework<D, COMP, Model>::DeployML(std::vector<double> & u_coordin
             double adjx = x1 + x21 * xi + x31 * eta;
             double adjy = y1 + y21 * xi + y31 * eta;
 
-            sprintf(res_out, "%10.10f %10.10f %10.10f", adjx, adjy, exp(ml_adjoint[i][j]));
+            sprintf(res_out, "%10.10f %10.10f %10.10f", adjx, adjy, ml_adjoint[i][j]);
             output << res_out << endl;
         }
 

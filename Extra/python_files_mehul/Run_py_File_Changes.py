@@ -54,7 +54,7 @@ Req_dir = sorted(Req_dir)
 
 for i in range(len(Req_dir)):
     Files.append(f"./{Req_dir[i]}/run.py")
-    Strings.append("eps_range = np.linspace(0.1, 1, N)")
+    Strings.append("eps_range = np.linspace(0.1, 0.2, N2)")
     Values.append(f"[{epsilon_per_core *i}:{epsilon_per_core *(i+1)}]")
     # print(f"[{1*i}:{1*(i+1)}]")
 print(f"Directories: \n{Req_dir}")

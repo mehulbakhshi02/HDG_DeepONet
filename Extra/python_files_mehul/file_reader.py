@@ -19,7 +19,7 @@ for filename in filename_list:
 		if len(split_list) ==3:
 			data_points = data_points + 1
 			num_branch_inputs = int(split_list[0])
-			num_trunk_inputs = int(split_list[1])
+			num_trunk_inputs = 2
 			num_outputs = int(split_list[2])
 
 branch_input_array = np.zeros((data_points, num_outputs, num_branch_inputs))

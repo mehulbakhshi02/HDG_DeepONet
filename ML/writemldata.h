@@ -268,7 +268,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for (int pp = 0; pp < u_size; ++pp)
 			{
-				err_log << log(abs(u_sol[k])) << endl;
+				err_log << u_sol[k] << endl;
 				k = k+1;
 			}
 
@@ -287,7 +287,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for(int l=0; l<adj_size; l++)
 			{
-				err_log << log(abs(adj_sol[n])) << endl;
+				err_log << adj_sol[n] << endl;
 				n=n+1;
 			}
 
@@ -321,7 +321,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for (int pp = 0; pp < u_size; ++pp)
 			{
-				err_log << log(abs(u_sol[k])) << endl;
+				err_log << u_sol[k] << endl;
 				k = k+1;
 			}
 
@@ -340,7 +340,7 @@ void UnifyingFramework<D, COMP, Model>
 
 			for(int l=0; l<adj_size; l++)
 			{
-				err_log << log(abs(adj_sol[n])) << endl;
+				err_log << adj_sol[n] << endl;
 				n=n+1;
 			}
 		}

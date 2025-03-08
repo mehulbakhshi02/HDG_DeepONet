@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from sklearn.model_selection import train_test_split
+import joblib
 
 def process_data(trans_adj_coordinates, norm_u_sol):
 
@@ -17,7 +18,7 @@ def process_data(trans_adj_coordinates, norm_u_sol):
             num_h = len(layer)
             self.branch_hidden = []
             for i in range(num_h-1):
-                self.branch_hidden.append(tf.keras.layers.Dense(units=layer[i], activation=activation, kernel_initializer='glorot_uniform', bias_initializer='random_normal'))
+                self.branch_hidden.append(tf.keras.layers.Dense(units=layer[i], activation=activation[i], kernel_initializer='glorot_uniform', bias_initializer='random_normal'))
             # The last layer (layer[-1]) is the output layer. It does not use an activation function, as this is typical for regression tasks or when applying the activation function later
             self.branch_out = tf.keras.layers.Dense(units=layer[-1], kernel_initializer='glorot_uniform', bias_initializer='random_normal')
         
@@ -34,7 +35,7 @@ def process_data(trans_adj_coordinates, norm_u_sol):
             base_config = super().get_config()
             config = {
                 "layer": self.layer,
-                "activation": self.branch_hidden[0].activation,  # Assuming all hidden layers have the same activation
+                "activation": [layer.activation for layer in self.branch_hidden],  # Assuming all hidden layers have the same activation
             }
             return {**base_config, **config}
         
@@ -64,7 +65,7 @@ def process_data(trans_adj_coordinates, norm_u_sol):
             config = {
                 "branch_layer": self.branch.layer,
                 "trunk_layer": self.trunk.layer,
-                "activation": self.branch.branch_hidden[0].activation,  # Assuming all hidden layers have the same activation
+                "activation": [layer.activation for layer in self.branch.branch_hidden],  # Assuming all hidden layers have the same activation
             }
             return {**base_config, **config}
 
@@ -100,6 +101,11 @@ def process_data(trans_adj_coordinates, norm_u_sol):
             kk = kk+1
     trunk_input[:, :, :] = trunk_input[0, :, :]
 
+    # Normalizing the input data
+    preproc_branch = joblib.load("ip_scaler.save")
+    branch_input_reshaped = branch_input.reshape(-1, branch_input.shape[-1])
+    branch_input = preproc_branch.transform(branch_input_reshaped).reshape(branch_input.shape)
+
     X_test = (branch_input, trunk_input)
 
     def new_r2(y_true, y_pred):
@@ -112,6 +118,13 @@ def process_data(trans_adj_coordinates, norm_u_sol):
     model_deepon_loaded = tf.keras.models.load_model("deeponet_model.keras", custom_objects={"new_r2": new_r2, "Deepon": Deepon, "FNN": FNN})
 
     ml_adjoint = model_deepon_loaded.predict(X_test)
+
+    #Denormalizing
+
+    preproc_output = joblib.load("op_scaler.save")
+
+    output_array_inverse_scaled = preproc_output.inverse_transform(ml_adjoint.reshape(-1, 1)).reshape(ml_adjoint.shape)
+    ml_adjoint = output_array_inverse_scaled
 
     ml_adjoint = ml_adjoint.tolist()
 
